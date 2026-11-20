@@ -1,0 +1,24 @@
+J-PPI User Guide
+Jabe's Plex Playlist Importer
+
+Build a playlist
+
+1. Choose a search folder on the left. J-PPI indexes audio files in that folder and its subfolders.
+2. Type artist, album, or track terms. For example, Metallica Battery matches files with both words anywhere in their paths.
+3. Double-click a result or select several and click Add selected tracks. You can also use Add tracks to choose files directly.
+4. Select a track on the right and use Move up, Move down, or Remove to edit the playlist.
+
+Open and repair a playlist
+
+Click Open .m3u to load an M3U or M3U8 playlist. J-PPI checks the paths and highlights missing tracks in red. Click Search for Missing Files to review suggestions from the indexed folder. Choose a replacement, remove the entry from the playlist, or skip it and continue.
+
+Save and import into Plex
+
+1. Click Save .m3u to write a playlist file, or Save and import to save it and create a playlist on Plex Media Server.
+2. For import, enter the server URL and your Plex account token, then select your music library. J-PPI can fill the token from the local Windows Plex registry and look up available libraries automatically.
+3. Save the M3U where Plex Media Server can read it. Its tracks must already be indexed in the selected library under the same paths.
+4. Open Playlists in Plexamp under the same account. Plex uses the M3U filename as the playlist name.
+
+Release notes and updates
+
+Choose Help > About J-PPI to see your version, read release notes, or check for an update. When a newer release is available, Update opens its GitHub release page.
