@@ -2,10 +2,20 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
 
+$appTitle = "Jabe's Plex Playlist Importer"
+$appDirectory = $PSScriptRoot
+$iconPath = Join-Path $appDirectory 'J-PPI.ico'
+$appIcon = if ([IO.File]::Exists($iconPath)) { [Drawing.Icon]::new($iconPath) }
+
+function Set-AppWindowIdentity([Windows.Forms.Form] $window, [string] $title = $appTitle) {
+    $window.Text = $title
+    if ($appIcon) { $window.Icon = $appIcon }
+}
+
 $form = [Windows.Forms.Form]::new()
-$form.Text = 'J-PPI'
+Set-AppWindowIdentity $form 'J-PPI'
 $form.ClientSize = [Drawing.Size]::new(1120, 591)
-$form.FormBorderStyle = 'FixedDialog'
+$form.FormBorderStyle = 'FixedSingle'
 $form.MaximizeBox = $false
 $form.StartPosition = 'CenterScreen'
 
@@ -27,7 +37,7 @@ function Add-Control($type, $caption, $x, $y, $width, $height, $left = $false) {
 
 $null = Add-Control Label 'Tracks (in playback order)' 16 16 500 22
 $appVersion = [version] '0.1.0'
-$appDirectory = $PSScriptRoot
+
 
 function Get-ReleaseRepository {
     $repository = $env:JPPI_GITHUB_REPO
@@ -37,13 +47,14 @@ function Get-ReleaseRepository {
             $repository = $Matches.repo
         }
     }
+    if (!$repository) { $repository = 'jabe421/J-PPI' }
     if ($repository -match '^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$') { $repository }
 }
 
 function Show-HelpText([string] $title, [string] $content) {
     $notes = [Windows.Forms.Form]::new()
     try {
-        $notes.Text = $title
+        Set-AppWindowIdentity $notes $title
         $notes.StartPosition = 'CenterParent'
         $notes.ClientSize = [Drawing.Size]::new(620, 375)
         $body = [Windows.Forms.TextBox]::new()
@@ -60,35 +71,35 @@ function Show-HelpText([string] $title, [string] $content) {
 
 $guide.Add_Click({
     $content = Get-Content -Raw -LiteralPath (Join-Path $appDirectory 'USER-GUIDE.txt')
-    Show-HelpText 'J-PPI User Guide' $content
+    Show-HelpText $appTitle $content
 })
 
 $about.Add_Click({
     $dialog = [Windows.Forms.Form]::new()
     try {
-        $dialog.Text = "About Jabe's Plex Playlist Importer"
+        Set-AppWindowIdentity $dialog
         $dialog.StartPosition = 'CenterParent'
-        $dialog.FormBorderStyle = 'FixedDialog'
+        $dialog.FormBorderStyle = 'FixedSingle'
         $dialog.MaximizeBox = $false
         $dialog.MinimizeBox = $false
-        $dialog.ClientSize = [Drawing.Size]::new(520, 330)
+        $dialog.ClientSize = [Drawing.Size]::new(520, 384)
+        $description = [Windows.Forms.Label]::new()
+        $description.SetBounds(12, 10, 496, 72)
+        $description.Text = "J-PPI (Jabe's Plex Playlist Importer) is a Windows app for creating and editing music playlists. You can search your music folders, arrange tracks, and open existing .m3u playlists to find and replace missing songs. You can then save the playlist as an .m3u file or import it into Plex Media Server for playback in Plexamp."
+        $dialog.Controls.Add($description)
         $heading = [Windows.Forms.Label]::new()
-        $heading.SetBounds(12, 10, 496, 22)
-        $heading.Text = "Current version: $appVersion (Jabe's Plex Playlist Importer)"
+        $heading.SetBounds(12, 88, 496, 22)
+        $heading.Text = "Current version: $appVersion"
         $dialog.Controls.Add($heading)
         $newest = [Windows.Forms.Label]::new()
-        $newest.SetBounds(12, 33, 496, 22)
+        $newest.SetBounds(12, 111, 496, 22)
         $newest.Text = 'Newest available version: Unknown'
         $dialog.Controls.Add($newest)
-        $beta = [Windows.Forms.CheckBox]::new()
-        $beta.SetBounds(12, 54, 496, 24)
-        $beta.Text = 'Include beta releases'
-        $dialog.Controls.Add($beta)
         $message = [Windows.Forms.Label]::new()
-        $message.SetBounds(12, 81, 496, 23)
+        $message.SetBounds(12, 135, 496, 23)
         $dialog.Controls.Add($message)
         $notes = [Windows.Forms.TextBox]::new()
-        $notes.SetBounds(12, 105, 496, 180)
+        $notes.SetBounds(12, 159, 496, 180)
         $notes.Multiline = $true
         $notes.ReadOnly = $true
         $notes.ScrollBars = 'Vertical'
@@ -96,16 +107,16 @@ $about.Add_Click({
         $notes.Text = $currentNotes
         $dialog.Controls.Add($notes)
         $check = [Windows.Forms.Button]::new()
-        $check.SetBounds(12, 292, 160, 27)
+        $check.SetBounds(12, 346, 160, 27)
         $check.Text = 'Check Again'
         $dialog.Controls.Add($check)
         $download = [Windows.Forms.Button]::new()
-        $download.SetBounds(180, 292, 160, 27)
+        $download.SetBounds(180, 346, 160, 27)
         $download.Text = 'Update'
         $download.Enabled = $false
         $dialog.Controls.Add($download)
         $close = [Windows.Forms.Button]::new()
-        $close.SetBounds(348, 292, 160, 27)
+        $close.SetBounds(348, 346, 160, 27)
         $close.Text = 'Exit'
         $close.DialogResult = 'Cancel'
         $dialog.CancelButton = $close
@@ -124,39 +135,28 @@ $about.Add_Click({
             $message.Text = 'Checking GitHub for the latest release...'
             $message.Refresh()
             try {
-                $endpoint = if ($beta.Checked) { 'releases?per_page=100' } else { 'releases/latest' }
-                $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/$endpoint" -UserAgent 'J-PPI' -TimeoutSec 8 -ErrorAction Stop
-                $available = foreach ($release in $releases) {
-                    if ($release.draft -or $release.tag_name -notmatch '^v?(?<core>\d+\.\d+\.\d+)(?:-beta\.(?<beta>\d+))?$') { continue }
-                    [pscustomobject]@{
-                        Release = $release
-                        Version = [version] $Matches.core
-                        Stable = !$Matches.beta
-                        BetaNumber = [int] $Matches.beta
-                    }
-                }
-                $latest = $available | Sort-Object Version, Stable, BetaNumber -Descending | Select-Object -First 1
-                if (!$latest) {
+                $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$repo/releases/latest" -UserAgent 'J-PPI' -TimeoutSec 8 -ErrorAction Stop
+                if ($release.tag_name -notmatch '^v?(?<version>\d+\.\d+\.\d+)$') {
                     $message.Text = 'No matching J-PPI releases have been published.'
                     return
                 }
-                $label = $latest.Release.tag_name.TrimStart('v', 'V')
+                $label = $Matches.version
+                $latestVersion = [version] $label
                 $newest.Text = "Newest available version: $label"
-                if ($latest.Version -le $appVersion) {
+                if ($latestVersion -le $appVersion) {
                     $message.Text = "J-PPI $appVersion is up to date."
                     return
                 }
-                $tag = [uri]::EscapeDataString($latest.Release.tag_name)
+                $tag = [uri]::EscapeDataString($release.tag_name)
                 $update.Url = "https://github.com/$repo/releases/tag/$tag"
                 $download.Enabled = $true
                 $message.Text = 'Update opens the GitHub release page.'
-                $notes.Text = $latest.Release.body -replace '\r?\n', "`r`n"
+                $notes.Text = $release.body -replace '\r?\n', "`r`n"
             }
             catch {
                 $message.Text = 'Could not find a published J-PPI release. Check the repository and try again.'
             }
         })
-        $beta.Add_CheckedChanged({ $check.PerformClick() })
         $dialog.Add_Shown({ $check.PerformClick() })
         $dialog.ShowDialog($form) | Out-Null
     }
@@ -195,9 +195,33 @@ $trackButtons = @($add, $remove, $up, $down)
 $trackButtonPositions = @($trackButtons | ForEach-Object { $_.Left })
 
 $null = Add-Control Label 'Plex server URL' 16 329 120 22
-$server = Add-Control TextBox 'http://localhost:32400' 146 325 558 24
+$settingsFolder = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) 'J-PPI'
+$searchFolderSetting = Join-Path $settingsFolder 'search-folder.txt'
+$serverUrlSetting = Join-Path $settingsFolder 'plex-server-url.txt'
+$musicLibrarySetting = Join-Path $settingsFolder 'music-library.txt'
+
+function Get-SavedSetting([string] $path, [string] $defaultValue) {
+    try {
+        if ([IO.File]::Exists($path)) { return [IO.File]::ReadAllText($path) }
+    } catch {
+        Write-Verbose "Could not read the setting: $($_.Exception.Message)"
+    }
+    $defaultValue
+}
+
+function Test-RememberedServerUrl([string] $value) {
+    $address = $null
+    [uri]::TryCreate($value, [UriKind]::Absolute, [ref] $address) -and
+        $address.Scheme -in 'http', 'https' -and $address.Host -and
+        !$address.UserInfo -and !$address.Query -and !$address.Fragment
+}
+
+$localServerUrl = 'http://localhost:32400'
+$savedServerUrl = Get-SavedSetting $serverUrlSetting $localServerUrl
+if (!(Test-RememberedServerUrl $savedServerUrl)) { $savedServerUrl = $localServerUrl }
+$server = Add-Control TextBox $savedServerUrl 146 325 558 24
 $null = Add-Control Label 'Music library' 16 363 120 22
-$library = Add-Control ComboBox 'Music' 146 359 420 24
+$library = Add-Control ComboBox (Get-SavedSetting $musicLibrarySetting 'Music') 146 359 420 24
 $refreshLibraries = Add-Control Button 'Refresh libraries' 575 357 129 28
 $null = Add-Control Label 'Plex token' 16 397 120 22
 $token = Add-Control TextBox '' 146 393 558 24
@@ -210,9 +234,8 @@ function Get-LocalPlexToken {
     $settings.PlexOnlineToken
 }
 
-$localServerUrl = $server.Text
 $localPlexToken = Get-LocalPlexToken
-if (![string]::IsNullOrWhiteSpace($localPlexToken)) {
+if ($server.Text.TrimEnd('/') -ieq $localServerUrl -and ![string]::IsNullOrWhiteSpace($localPlexToken)) {
     $token.Text = $localPlexToken
     $tokenHint.Text = 'Loaded from the local Plex server registry. Use your own token for a different Plex account.'
 }
@@ -238,7 +261,9 @@ $libraryState = @{ Dirty = $true; Changed = [datetime]::UtcNow; Worker = $null; 
 $libraryHelper = Join-Path $PSScriptRoot 'PlexMusicLibraries.ps1'
 
 function Request-LibraryRefresh {
+    $preferredLibrary = $library.Text
     $library.Items.Clear()
+    $library.Text = $preferredLibrary
     $libraryState.Dirty = $true
     $libraryState.Changed = [datetime]::UtcNow
 }
@@ -253,7 +278,10 @@ $libraryTimer.Add_Tick({
             $names = @($libraryState.Worker.EndInvoke($libraryState.Pending))
             if (!$libraryState.Dirty) {
                 $library.Items.AddRange([object[]] $names)
-                if ($names.Count -eq 1 -or ($names.Count -gt 1 -and $library.Text -notin $names)) {
+                $preferredIndex = $library.FindStringExact($library.Text)
+                if ($preferredIndex -ge 0) {
+                    $library.SelectedIndex = $preferredIndex
+                } elseif ($names.Count -gt 0) {
                     $library.SelectedIndex = 0
                 }
                 $libraryStatus.Text = if ($names.Count -eq 1) {
@@ -299,9 +327,26 @@ $libraryTimer.Add_Tick({
 
 $null = Add-Control Label 'Search folder' 16 16 372 22 $true
 $defaultMusicFolder = [Environment]::GetFolderPath([Environment+SpecialFolder]::MyMusic)
-$searchPath = Add-Control TextBox $defaultMusicFolder 16 42 291 24 $true
+$searchPath = Add-Control TextBox (Get-SavedSetting $searchFolderSetting $defaultMusicFolder) 16 42 291 24 $true
+$form.Add_FormClosed({
+    try {
+        [IO.Directory]::CreateDirectory($settingsFolder) | Out-Null
+        [IO.File]::WriteAllText($searchFolderSetting, $searchPath.Text.Trim())
+        if (![string]::IsNullOrWhiteSpace($library.Text)) {
+            [IO.File]::WriteAllText($musicLibrarySetting, $library.Text.Trim())
+        }
+        $enteredUrl = $server.Text.Trim()
+        if (!$enteredUrl -or $enteredUrl.TrimEnd('/') -ieq $localServerUrl) {
+            [IO.File]::Delete($serverUrlSetting)
+        } elseif (Test-RememberedServerUrl $enteredUrl) {
+            [IO.File]::WriteAllText($serverUrlSetting, $enteredUrl)
+        }
+    } catch {
+        Write-Warning "Could not save the J-PPI settings: $($_.Exception.Message)"
+    }
+})
 $browse = Add-Control Button 'Browse...' 314 40 74 27 $true
-$null = Add-Control Label 'Search by file or folder name' 16 78 372 22 $true
+$null = Add-Control Label 'Search by Song Title or Album Title' 16 78 372 22 $true
 $search = Add-Control TextBox '' 16 101 372 24 $true
 $results = Add-Control ListBox '' 16 138 372 309 $true
 $results.HorizontalScrollbar = $true
@@ -456,10 +501,10 @@ function Get-TrackSearchTitle([string] $path) {
 function Show-MissingTrackDialog([string] $path, [object[]] $candidates) {
     $dialog = [Windows.Forms.Form]::new()
     try {
-        $dialog.Text = 'Find a replacement track'
+        Set-AppWindowIdentity $dialog
         $dialog.ClientSize = [Drawing.Size]::new(760, 350)
         $dialog.StartPosition = 'CenterParent'
-        $dialog.FormBorderStyle = 'FixedDialog'
+        $dialog.FormBorderStyle = 'FixedSingle'
         $dialog.MaximizeBox = $false
         $dialog.MinimizeBox = $false
 
@@ -683,7 +728,71 @@ function Save-Playlist([bool] $sendToPlex) {
 
 $save.Add_Click({ Save-Playlist $false })
 $import.Add_Click({ Save-Playlist $true })
+function Show-StartupSplash {
+    $imagePath = Join-Path $appDirectory 'J-PPI-splash.png'
+    if (![IO.File]::Exists($imagePath)) { return }
+
+    try { $image = [Drawing.Image]::FromFile($imagePath) }
+    catch { return }
+
+    $splash = [Windows.Forms.Form]::new()
+    $bitmap = $null
+    $outline = $null
+    $timer = [Windows.Forms.Timer]::new()
+    try {
+        Set-AppWindowIdentity $splash
+        $splash.ClientSize = [Drawing.Size]::new(480, 480)
+        $splash.StartPosition = 'CenterScreen'
+        $splash.FormBorderStyle = 'None'
+        $splash.ShowInTaskbar = $false
+        $splash.BackColor = [Drawing.Color]::FromArgb(18, 17, 24)
+
+        $width = $splash.ClientSize.Width
+        $height = $splash.ClientSize.Height
+        $bitmap = [Drawing.Bitmap]::new($width, $height, [Drawing.Imaging.PixelFormat]::Format32bppArgb)
+        $graphics = [Drawing.Graphics]::FromImage($bitmap)
+        try {
+            $graphics.InterpolationMode = 'HighQualityBicubic'
+            $graphics.DrawImage($image, 0, 0, $width, $height)
+        }
+        finally { $graphics.Dispose() }
+
+        # Clip the rounded tile at its alpha boundary so the edge blends into the
+        # splash's dark background instead of a chroma key.
+        $outline = [Drawing.Drawing2D.GraphicsPath]::new()
+        for ($y = 0; $y -lt $height; $y++) {
+            $left = 0
+            while ($left -lt $width -and $bitmap.GetPixel($left, $y).A -lt 128) { $left++ }
+            if ($left -eq $width) { continue }
+            $right = $width - 1
+            while ($right -gt $left -and $bitmap.GetPixel($right, $y).A -lt 128) { $right-- }
+            $outline.AddRectangle([Drawing.Rectangle]::new($left, $y, ($right - $left + 1), 1))
+        }
+        $splash.Region = [Drawing.Region]::new($outline)
+
+        $picture = [Windows.Forms.PictureBox]::new()
+        $picture.Image = $bitmap
+        $picture.SizeMode = 'Normal'
+        $picture.Dock = 'Fill'
+        $splash.Controls.Add($picture)
+        $picture.Add_Click({ $splash.Close() })
+
+        $timer.Interval = 1000
+        $timer.Add_Tick({ $timer.Stop(); $splash.Close() })
+        $splash.Add_Shown({ $timer.Start() })
+        $splash.ShowDialog() | Out-Null
+    }
+    finally {
+        $timer.Dispose()
+        $splash.Dispose()
+        if ($outline) { $outline.Dispose() }
+        if ($bitmap) { $bitmap.Dispose() }
+        $image.Dispose()
+    }
+}
+
 try {
+    Show-StartupSplash
     $libraryTimer.Start()
     $searchTimer.Start()
     $form.ShowDialog() | Out-Null

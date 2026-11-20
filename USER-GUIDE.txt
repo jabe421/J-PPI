@@ -1,24 +1,47 @@
-J-PPI User Guide
-Jabe's Plex Playlist Importer
+Jabe's Plex Playlist Importer User Guide
 
-Build a playlist
+GET STARTED
 
-1. Choose a search folder on the left. J-PPI indexes audio files in that folder and its subfolders.
-2. Type artist, album, or track terms. For example, Metallica Battery matches files with both words anywhere in their paths.
-3. Double-click a result or select several and click Add selected tracks. You can also use Add tracks to choose files directly.
-4. Select a track on the right and use Move up, Move down, or Remove to edit the playlist.
+Run J-PPI-Windows-Setup.exe and review the MIT License. Setup lets you choose the installation folder and whether to create Start menu and desktop shortcuts. To open J-PPI, search for it in Start or double-click the desktop shortcut, depending on what you selected. You can also select Launch J-PPI on the final setup page.
 
-Open and repair a playlist
+The splash screen closes after about a second. Click it to get to the main window immediately. Use the left panel to find audio files and the right panel to build your playlist in playback order. J-PPI remembers your search folder, selected music library, and any custom Plex server URL when you close the app.
 
-Click Open .m3u to load an M3U or M3U8 playlist. J-PPI checks the paths and highlights missing tracks in red. Click Search for Missing Files to review suggestions from the indexed folder. Choose a replacement, remove the entry from the playlist, or skip it and continue.
+FIND AND ADD TRACKS
 
-Save and import into Plex
+1. Enter a Search folder or click Browse to choose one. J-PPI indexes audio files in that folder and its subfolders. Wait for indexing to finish before searching a large folder.
+2. Type part of an artist, album, or song name in the search box. Results update as you type. Every term must appear somewhere in the path, in any order and regardless of capitalization. For example, Metallica Battery finds Battery tracks in Metallica album folders. If there are more than 500 matches, add another term to narrow the results.
+3. Double-click a result to add it. To add several, select them with Ctrl or Shift and click Add selected tracks. Add tracks opens a file picker if you already know where the files are.
+4. Select an entry on the right and use Move up or Move down to change its playback position. Remove deletes the entry from the playlist editor and leaves the audio file on disk.
 
-1. Click Save .m3u to write a playlist file, or Save and import to save it and create a playlist on Plex Media Server.
-2. For import, enter the server URL and your Plex account token, then select your music library. J-PPI can fill the token from the local Windows Plex registry and look up available libraries automatically.
-3. Save the M3U where Plex Media Server can read it. Its tracks must already be indexed in the selected library under the same paths.
-4. Open Playlists in Plexamp under the same account. Plex uses the M3U filename as the playlist name.
+OPEN AND VERIFY A PLAYLIST
 
-Release notes and updates
+1. Click Open .m3u and select a local .m3u or .m3u8 file. If there are tracks in the editor, J-PPI asks before replacing that list.
+2. J-PPI loads the tracks in file order and checks each path. Relative paths are resolved from the folder containing the playlist. The status line shows how many tracks were found, and missing entries are highlighted in red and labeled [Missing].
+3. Resolve missing entries before saving or importing. J-PPI needs each retained path to point to an existing audio file.
 
-Choose Help > About J-PPI to see your version, read release notes, or check for an update. When a newer release is available, Update opens its GitHub release page.
+FIND REPLACEMENTS FOR MISSING FILES
+
+1. Choose the folder where your music is stored and wait for indexing to finish. Search for Missing Files appears to the left of Add tracks when the playlist has missing entries.
+2. Click Search for Missing Files. J-PPI reviews one missing entry at a time and suggests indexed files based on the track filename. Check the full paths when several albums or versions have the same track.
+3. Select a match and click Replace selected to keep the track in the same playlist position. Remove from playlist drops the entry. Skip file leaves it marked missing and moves to the next entry. The remove and skip options are available when there are no matches.
+4. The button disappears when all missing entries are resolved. Save the playlist to keep your edits.
+
+SAVE AN M3U
+
+Click Save .m3u, choose a folder, and enter a filename. The file contains the full audio paths in playback order. To update a saved playlist, choose its existing filename and confirm the overwrite.
+
+CONNECT TO PLEX AND IMPORT
+
+1. Enter your Plex server URL. Use http://localhost:32400 when Plex Media Server runs on the same PC at the default address and port.
+2. Use the Plex token for the account you use in Plexamp. When available, J-PPI fills the masked token field from the local Windows Plex registry. Changing the server URL clears the automatically loaded local token. Enter the correct token if you use another server or account.
+3. Select a Music library from the dropdown. J-PPI looks up the libraries available to the account when the server URL and token are set. Click Refresh libraries to check again.
+4. Click Save and import and choose where to save the M3U. Plex Media Server must be able to read the playlist at that path, and each audio path must match a track already indexed in the selected Plex library. If Plex uses a different drive letter, mount point, or operating system, check the paths from the server.
+5. After import, open Playlists in Plexamp using the same account. The M3U filename supplies the playlist name. Saving the file alone does not import it. Confirming an overwrite replaces the local M3U, and importing it again can create a separate Plex playlist.
+
+HELP, RELEASE NOTES, AND UPDATES
+
+Open Help > User Guide to return to these instructions. Open Help > About J-PPI to see the installed version, the latest release it finds, and release notes. Use Check Again to refresh the result, Update to open the newer release on GitHub for manual installation, or Exit to close the About window.
+
+UPGRADE OR UNINSTALL
+
+Close J-PPI and run a newer installer to upgrade. To remove J-PPI, open Windows Settings > Apps > Installed apps, find J-PPI, and select Uninstall. Uninstall removes the installed app and its shortcuts. Your music, saved playlists outside the installation folder, and per-user J-PPI preferences are retained.

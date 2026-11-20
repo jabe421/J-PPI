@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   package:
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v6
 
@@ -24,15 +24,14 @@ jobs:
             'PlexPlaylistCreator.ps1'
             'New-PlexPlaylist.ps1'
             'PlexMusicLibraries.ps1'
+            'J-PPI.ico'
             'J-PPI-icon.png'
+            'LICENSE'
             'J-PPI-splash.png'
             'README.md'
             'RELEASE-NOTES.md'
             'USER-GUIDE.txt'
           )
-          if (Test-Path -LiteralPath 'J-PPI.ico' -PathType Leaf) {
-            $files += 'J-PPI.ico'
-          }
           foreach ($file in $files) {
             if (!(Test-Path -LiteralPath $file -PathType Leaf)) {
               throw "Missing package file: $file"
@@ -53,5 +52,58 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           path: J-PPI-Windows.zip
+          archive: false
+          if-no-files-found: error
+
+      - name: Compile Windows installer
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $compiler = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          $source = Get-Content -Raw -LiteralPath 'PlexPlaylistCreator.ps1'
+          if ($source -notmatch '(?m)^\$appVersion = \[version\] ''(?<version>\d+\.\d+\.\d+)''') {
+            throw 'Could not determine the J-PPI version.'
+          }
+          & $compiler "/DAppVersion=$($Matches.version)" 'J-PPI.iss'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify install and uninstall
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installDir = Join-Path $env:RUNNER_TEMP 'J-PPI Installer Test'
+          $setup = (Resolve-Path -LiteralPath 'artifacts/J-PPI-Windows-Setup.exe').Path
+          $result = Start-Process -FilePath $setup -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART',
+            "/DIR=""$installDir""", '/TASKS=startmenu,desktopicon'
+          ) -Wait -PassThru -WindowStyle Hidden
+          if ($result.ExitCode -ne 0) { throw "Setup exited with $($result.ExitCode)." }
+
+          $start = Join-Path ([Environment]::GetFolderPath('Programs')) 'J-PPI.lnk'
+          $desktop = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'J-PPI.lnk'
+          $launcher = Join-Path $installDir 'PlexPlaylistCreator.ps1'
+          $uninstaller = Join-Path $installDir 'unins000.exe'
+          foreach ($file in @($start, $desktop, $launcher, $uninstaller, (Join-Path $installDir 'LICENSE'))) {
+            if (!(Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing installed file: $file" }
+          }
+          $shell = New-Object -ComObject WScript.Shell
+          foreach ($link in @($start, $desktop)) {
+            $shortcut = $shell.CreateShortcut($link)
+            if ($shortcut.TargetPath -notlike '*\powershell.exe' -or
+                !$shortcut.Arguments.Contains('"' + $launcher + '"')) {
+              throw "Incorrect shortcut target: $link"
+            }
+          }
+
+          $result = Start-Process -FilePath $uninstaller -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru -WindowStyle Hidden
+          if ($result.ExitCode -ne 0) { throw "Uninstaller exited with $($result.ExitCode)." }
+          foreach ($file in @($start, $desktop, $launcher)) {
+            if (Test-Path -LiteralPath $file) { throw "Uninstall left a file behind: $file" }
+          }
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v7
+        with:
+          path: artifacts/J-PPI-Windows-Setup.exe
           archive: false
           if-no-files-found: error

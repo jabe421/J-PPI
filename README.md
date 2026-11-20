@@ -4,7 +4,7 @@ Jabe's Plex Playlist Importer builds and edits local music playlists, finds repl
 
 ## Run on Windows
 
-Double-click **J-PPI.cmd**. The current app uses Windows PowerShell and Windows Forms.
+Run **J-PPI-Windows-Setup.exe**, choose your shortcuts, and open **J-PPI** from Start or the desktop. To uninstall, use **Settings > Apps > Installed apps**. The Windows ZIP is a portable alternative and starts from **J-PPI.cmd**.
 
 1. Choose a music folder and type a search query. Search terms can match different parts of a file's path.
 2. Add tracks from the search results or open an existing M3U. Missing tracks are highlighted and can be repaired using the indexed folder.
@@ -20,8 +20,12 @@ Keep Plex tokens, personal playlists, and track lists out of commits.
 
 ## Release notes and updates
 
-Open **Help > User Guide** for instructions or **Help > About J-PPI** for the installed version, release notes, and GitHub updates. The update check uses the GitHub `origin` remote or the `JPPI_GITHUB_REPO` environment variable (set it to the GitHub owner and repository separated by a slash). Publish stable releases with tags such as `v0.1.0`. For a newer release, **Update** opens its GitHub release page.
+Open **Help > User Guide** for instructions or **Help > About J-PPI** for the installed version, release notes, and GitHub updates. The installed app checks the official J-PPI GitHub repository. A source checkout can use its GitHub `origin` remote, or you can override the repository with `JPPI_GITHUB_REPO` in `owner/repository` format. Publish stable releases with tags such as `v0.1.0`. For a newer release, **Update** opens its GitHub release page.
 
 ## Cross-platform desktop port
 
 The Windows PowerShell app is the current runnable version. The planned desktop port uses C# and Avalonia for Windows and Linux. It will carry over playlist editing, live search, missing-file repair, and Plex library selection. The port also needs explicit handling for differing client and server paths, plus Windows and Linux package builds.
+
+## License
+
+J-PPI is available under the [MIT License](LICENSE).
