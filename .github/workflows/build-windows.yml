@@ -1,0 +1,57 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate and package J-PPI
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(
+            'J-PPI.cmd'
+            'PlexPlaylistCreator.ps1'
+            'New-PlexPlaylist.ps1'
+            'PlexMusicLibraries.ps1'
+            'J-PPI-icon.png'
+            'J-PPI-splash.png'
+            'README.md'
+            'RELEASE-NOTES.md'
+            'USER-GUIDE.txt'
+          )
+          if (Test-Path -LiteralPath 'J-PPI.ico' -PathType Leaf) {
+            $files += 'J-PPI.ico'
+          }
+          foreach ($file in $files) {
+            if (!(Test-Path -LiteralPath $file -PathType Leaf)) {
+              throw "Missing package file: $file"
+            }
+            if ($file.EndsWith('.ps1')) {
+              $tokens = $null
+              $parseErrors = $null
+              $null = [System.Management.Automation.Language.Parser]::ParseFile(
+                (Resolve-Path -LiteralPath $file).Path, [ref] $tokens, [ref] $parseErrors)
+              if ($parseErrors.Count -gt 0) {
+                throw ($parseErrors | Out-String)
+              }
+            }
+          }
+          Compress-Archive -LiteralPath $files -DestinationPath 'J-PPI-Windows.zip'
+
+      - name: Upload Windows ZIP
+        uses: actions/upload-artifact@v7
+        with:
+          path: J-PPI-Windows.zip
+          archive: false
+          if-no-files-found: error
