@@ -64,6 +64,7 @@ function Show-HelpText([string] $title, [string] $content) {
         $body.Dock = 'Fill'
         $body.Text = $content -replace '\r?\n', "`r`n"
         $notes.Controls.Add($body)
+        $notes.Add_Shown({ $body.Select(0, 0) })
         $notes.ShowDialog($form) | Out-Null
     }
     finally { $notes.Dispose() }
@@ -157,7 +158,11 @@ $about.Add_Click({
                 $message.Text = 'Could not find a published J-PPI release. Check the repository and try again.'
             }
         })
-        $dialog.Add_Shown({ $check.PerformClick() })
+        $dialog.ActiveControl = $check
+        $dialog.Add_Shown({
+            $check.PerformClick()
+            $notes.Select(0, 0)
+        })
         $dialog.ShowDialog($form) | Out-Null
     }
     finally { $dialog.Dispose() }
